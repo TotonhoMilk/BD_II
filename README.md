@@ -3,7 +3,8 @@
 **Professor:** Rodrigo Gonçalves  
 **Ambiente:** PostgreSQL 17 + pgAdmin 4 (via Docker Compose)  
 **Banco de Dados:** `matricula`
-**Alunos:** Alexandre (...)
+**Alunos:**
+	Alexandre (...)
         Antônio Alexandre Cavalcante Leite
         Carlos Eduardo (...)
 ---
