@@ -4,9 +4,9 @@
 **Ambiente:** PostgreSQL 17 + pgAdmin 4 (via Docker Compose)  
 **Banco de Dados:** `matricula`
 **Alunos:**
-	Alexandre (...)
-        Antônio Alexandre Cavalcante Leite
-        Carlos Eduardo (...)
+	* Alexandre (...).  
+        * Antônio Alexandre Cavalcante Leite.  
+        * Carlos Eduardo (...).  
 ---
 
 ## 📂 Estrutura de Pastas e Arquivos
