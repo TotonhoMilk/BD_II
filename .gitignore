@@ -1,0 +1,51 @@
+# ----------------------------------------------------------------------
+# Arquivos de Sistema Operacional (macOS, Windows, Linux)
+# ----------------------------------------------------------------------
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehprivgraph.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+.trash/
+
+# ----------------------------------------------------------------------
+# Docker, Logs e Variáveis de Ambiente
+# ----------------------------------------------------------------------
+*.log
+docker-volumes/
+.env
+
+# ----------------------------------------------------------------------
+# IDEs e Editores de Código
+# ----------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ----------------------------------------------------------------------
+# DBeaver, pgAdmin e Gerenciadores de BD (Configurações Locais)
+# ----------------------------------------------------------------------
+.dbeaver/
+*.dbeaver-*
+dbeaver-data/
+pgadmin4.db
+
+# ----------------------------------------------------------------------
+# Arquivos Temporários e Dumps Locais
+# ----------------------------------------------------------------------
+*.tmp
+*.bak
+*.sql.bak
