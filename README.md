@@ -26,19 +26,19 @@ projeto/
 
 ## 📝 Descrição dos Componentes
 
-    `sql/:` Contém todos os arquivos de script de banco de dados (.sql). Os arquivos são salvos diretamente no disco para sincronização via Git.
+* `sql/:` Contém todos os arquivos de script de banco de dados (.sql). Os arquivos são salvos diretamente no disco para sincronização via Git.
 
-    `ai-prompts/:` Pastas individuais para cada integrante do grupo anexar os históricos de prompts (em .md ou .pdf) utilizados durante as atividades.
+* `ai-prompts/:` Pastas individuais para cada integrante do grupo anexar os históricos de prompts (em .md ou .pdf) utilizados durante as atividades.
 
-    `docker-compose.yml:` Configuração automatizada para subir o banco PostgreSQL 17 e o gerenciador pgAdmin 4 sem necessidade de instalação local.
+* `docker-compose.yml:` Configuração automatizada para subir o banco PostgreSQL 17 e o gerenciador pgAdmin 4 sem necessidade de instalação local.
 
 ## 🚀 Como Baixar o Projeto e Conectar com a Nuvem
 1. Clonar o Repositório (Primeira Vez)
 
 Para baixar os arquivos do GitHub para a sua máquina local, abra o terminal (ou Prompt de Comando/PowerShell no Windows) e execute:
 ```
-git clone [https://github.com/SEU-USUARIO/NOME-DO-REPOSITORIO.git](https://github.com/SEU-USUARIO/NOME-DO-REPOSITORIO.git)
-cd NOME-DO-REPOSITORIO
+git clone https://github.com/TotonhoMilk/BD_II.git
+cd BD_II
 ```
 
 # 📖 Guia Básico do Git (Fluxo Diário de Trabalho)
@@ -59,10 +59,10 @@ git push origin main
 ## 🤖 Registro de Prompts de Inteligência Artificial
 
 Em alinhamento com as diretrizes do curso, o uso de ferramentas de IA é liberado e incentivado. Todos os membros do grupo mantêm o registro de suas interações com as IAs nas pastas dedicadas dentro de `ai-prompts/:`
-```
+
 ai-prompts/aluno-1/: Registros do Aluno 1
 
 ai-prompts/aluno-2/: Registros do Aluno 2
 
 ai-prompts/aluno-3/: Registros do Aluno 3
-```
+
