@@ -73,3 +73,14 @@ ai-prompts/aluno-2/: Registros do Aluno 2
 
 ai-prompts/aluno-3/: Registros do Aluno 3
 
+## Dicas das dicas do Professor
+
+Use o `docker compose down` apenas se quiser limpar completamente o ambiente Docker para reconfigurá-lo ou liberar espaço do sistema.
+
+```bash
+# Para desligar no fim do dia (apenas para a execução)
+docker compose stop
+
+# Para voltar a trabalhar no dia seguinte
+docker compose start
+```
