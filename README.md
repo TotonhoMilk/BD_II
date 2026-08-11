@@ -8,10 +8,9 @@
 
 ## 📂 Estrutura de Pastas e Arquivos
 
-```text
+
 ```
-```
-meu-projeto-bd2/
+projeto/
 ├── .gitignore             # Filtros de arquivos ignorados pelo Git (macOS, Windows, Linux)
 ├── README.md              # Documentação principal do repositório
 ├── docker-compose.yml     # Orquestração dos containers PostgreSQL 17 e pgAdmin 4
@@ -22,11 +21,9 @@ meu-projeto-bd2/
 └── ai-prompts/            # Transparência e registro do uso de IA
     ├── aluno-1/           # Histórico e prompts do Aluno 1
     ├── aluno-2/           # Histórico e prompts do Aluno 2
-    └── aluno-3/           # Histórico e prompts do Aluno 3 BD_II
+    └── aluno-3/           # Histórico e prompts do Aluno 3
 ```
 
-
-```
 ## 📝 Descrição dos Componentes
 
     `sql/:` Contém todos os arquivos de script de banco de dados (.sql). Os arquivos são salvos diretamente no disco para sincronização via Git.
@@ -39,20 +36,33 @@ meu-projeto-bd2/
 1. Clonar o Repositório (Primeira Vez)
 
 Para baixar os arquivos do GitHub para a sua máquina local, abra o terminal (ou Prompt de Comando/PowerShell no Windows) e execute:
-
+```
 git clone [https://github.com/SEU-USUARIO/NOME-DO-REPOSITORIO.git](https://github.com/SEU-USUARIO/NOME-DO-REPOSITORIO.git)
 cd NOME-DO-REPOSITORIO
+```
 
-# 📖 Guia Básico do Git (Fluxo Diário de Trabalho)Antes de iniciar qualquer alteração nos arquivos, lembre-se de atualizar seu repositório local:Bashgit pull origin main
+# 📖 Guia Básico do Git (Fluxo Diário de Trabalho)
 
-Após realizar suas alterações ou criar novos scripts/prompts, siga a rotina de envio para a nuvem:PassoComandoDescrição1. Verificar alteraçõesgit statusLista os arquivos modificados ou novos na sua máquina.2. Preparar arquivosgit add .Adiciona todas as alterações para o próximo envio.3. Criar Ponto de Restauraçãogit commit -m "feat: cria tabela de alunos"Registra as alterações com uma mensagem descritiva.4. Enviar para a Nuvemgit push origin mainSincroniza seus commits locais com o GitHub.
+Antes de iniciar qualquer alteração nos arquivos, lembre-se de atualizar seu repositório local:
+```
+git pull origin main
+```
+
+Após realizar suas alterações ou criar novos scripts/prompts, siga a rotina de envio para a nuvem:
+```
+git status
+git add .
+git commit -m "feat: cria tabela de alunos"
+git push origin main
+```
 
 ## 🤖 Registro de Prompts de Inteligência Artificial
 
-Em alinhamento com as diretrizes do curso, o uso de ferramentas de IA é liberado e incentivado. Todos os membros do grupo mantêm o registro de suas interações com as IAs nas pastas dedicadas dentro de ai-prompts/:
+Em alinhamento com as diretrizes do curso, o uso de ferramentas de IA é liberado e incentivado. Todos os membros do grupo mantêm o registro de suas interações com as IAs nas pastas dedicadas dentro de `ai-prompts/:`
+```
+ai-prompts/aluno-1/: Registros do Aluno 1
 
-    ai-prompts/aluno-1/: Registros do Aluno 1
+ai-prompts/aluno-2/: Registros do Aluno 2
 
-    ai-prompts/aluno-2/: Registros do Aluno 2
-
-    ai-prompts/aluno-3/: Registros do Aluno 3
+ai-prompts/aluno-3/: Registros do Aluno 3
+```
