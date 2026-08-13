@@ -19,4 +19,32 @@
      - https://github.com/TotonhoMilk/BD_II
    ===================================================================== */
 
--- Fazer o que tem que ser feito a partir daqui!
+
+/* =====================================================================
+                TABELA CAMPUS
+   ===================================================================== */
+
+CREATE TABLE IF NOT EXISTS campus (
+  campus_id SMALLINT PRIMARY KEY,
+  campus_nome VARCHAR(60) UNIQUE,
+  campus_cidade VARCHAR(60)
+);
+
+
+/* =====================================================================
+                TABELA CURSO
+   ===================================================================== */
+
+CREATE TABLE IF NOT EXISTS curso (
+  curso_id SMALLINT PRIMARY KEY,
+  curso_codigo VARCHAR(10) UNIQUE,
+  curso_nome VARCHAR(120),
+  curso_grau VARCHAR(20),
+  curso_ch_total INT,
+  campus_id SMALLINT,
+
+  -- Definição de Chave Estrangeira (FK)
+  CONSTRAINT fk_curso_campus
+    FOREIGN KEY (campus_id)
+    REFERENCES campus(campus_id)
+);
