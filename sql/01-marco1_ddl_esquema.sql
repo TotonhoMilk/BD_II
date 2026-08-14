@@ -48,3 +48,59 @@ CREATE TABLE IF NOT EXISTS curso (
     FOREIGN KEY (campus_id)
     REFERENCES campus(campus_id)
 );
+
+
+/* =====================================================================
+                TABELA CURRICULO
+   ===================================================================== */
+
+CREATE TABLE IF NOT EXISTS curriculo (
+  curriculo_id INT PRIMARY KEY,
+  curso_id SMALLINT,
+  curriculo_ano_vigencia SMALLINT,
+  curriculo_ativo BOOLEAN,
+
+  -- Definição de Chave Estrangeira (FK)
+  CONSTRAINT fk_curriculo_curso
+    FOREIGN KEY (curso_id)
+    REFERENCES curso(curso_id)
+  );
+
+
+/* =====================================================================
+                TABELA DISCIPLINA
+   ===================================================================== */
+
+CREATE TABLE IF NOT EXISTS disciplina (
+  disciplina_id INT PRIMARY KEY,
+  disciplina_codigo VARCHAR(10) UNIQUE,
+  disciplina_nome VARCHAR(120),
+  disciplina_ch_teorica SMALLINT,
+  disciplina_ch_pratica SMALLINT,
+  disciplina_ch_total SMALLINT,
+  disciplina_ementa TEXT
+);
+
+
+/* =====================================================================
+                TABELA CURRICULO_DISCIPLINA
+   ===================================================================== */
+
+CREATE TABLE IF NOT EXISTS curriculo_disciplina (
+  curriculo_id INT,
+  disciplina_id INT,
+  curriculo_disciplina_periodo SMALLINT,
+  curriculo_disciplina_tipo VARCHAR(20), -- TIPO_DISC_T
+
+  -- Definição das Chaves Primárias (PK)
+  PRIMARY KEY (curriculo_id, disciplina_id),
+
+  -- Definição das Chaves Estrangeiras (FK)
+  CONSTRAINT fk_curriculo_disciplina_curriculo
+    FOREIGN KEY (curriculo_id)
+    REFERENCES curriculo(curriculo_id),
+
+  CONSTRAINT fk_curriculo_disciplina_disciplina
+    FOREIGN KEY (disciplina_id)
+    REFERENCES disciplina(disciplina_id)
+);   
