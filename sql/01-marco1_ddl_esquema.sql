@@ -179,10 +179,60 @@ CREATE TABLE IF NOT EXISTS feriado (
   feriado_id INT PRIMARY KEY,
   feriado_data DATE,
   feriado_descricao VARCHAR(120),
-  campus_id SMALLINT
+  campus_id SMALLINT,
 
   -- Definição de Chave Estrangeira (FK)
   CONSTRAINT fk_feriado_campus
     FOREIGN KEY (campus_id)
     REFERENCES campus(campus_id)
+);
+
+
+/* =====================================================================
+                tabela turma
+   ===================================================================== */
+
+CREATE TABLE IF NOT EXISTS turma (
+  turma_id INT PRIMARY KEY,
+  turma_codigo VARCHAR(15),
+  disciplina_id INT,
+  periodo_letivo_id SMALLINT,
+  professor_id INT,
+  turma_turno VARCHAR(20), -- TURNO_T
+  turma_vagas SMALLINT,
+
+  -- Definição de Chaves Estrangeiras (FK)
+  CONSTRAINT fk_turma_disciplina
+    FOREIGN KEY (disciplina_id)
+    REFERENCES disciplina(disciplina_id)
+
+  CONSTRAINT fk_turma_periodo_letivo
+    FOREIGN KEY (periodo_letivo_id)
+    REFERENCES periodo_letivo(periodo_letivo_id)
+
+  CONSTRAINT fk_turma_professor
+    FOREIGN KEY (professor_id)
+    REFERENCES professor(professor_id)
+);
+
+
+/* =====================================================================
+                TABELA TURMA_HORARIO
+   ===================================================================== */
+
+CREATE TABLE IF NOT EXISTS turma_horario (
+  turma_horario_id INT PRIMARY KEY,
+  turma_id INT,
+  sala_id INT,
+  turma_horario_dia_semana SMALLINT,
+  turma_horario_faixa TIMERANGE,
+
+  -- Definição das Chaves Estrangeiras (FK)
+  CONSTRAINT fk_turma_horario_turma
+    FOREIGN KEY (turma_id)
+    REFERENCES turma(turma_id)
+
+  CONSTRAINT fk_turma_horario_sala
+    FOREIGN KEY (sala_id)
+    REFERENCES sala(sala_id)
 );
