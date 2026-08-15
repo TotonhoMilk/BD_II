@@ -8,7 +8,7 @@
 
 **Alunos:**
 	
-  * Alexandre (...).  
+  * Alexandre Vieira Da Silva.  
   * Antônio Alexandre Cavalcante Leite.  
   * Carlos Eduardo (...).  
 ---
