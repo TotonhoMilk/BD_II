@@ -19,4 +19,8 @@ Estruturação do projeto de Banco de Dados 2
 
 * duas perguntas... onde você viu informaç!oes sobre o marco 1, e como eu poderia organizar as pastas para que os arquivos .sql ficassem gravados em disco, e não somente no dbeaver
 
+## Kimi K3 15-08-2026
 
+* Você é meu assistente no trabalho de banco de dados que estou fazendo. O modelo físico foi entregue pelo professor, eu tenho que criar o DDL do banco. Você será meu assistente. Onde eu poderei tirar possíveis dúvidas. Pretendo aprender o máximo possível com cada passo, então, as respostas deverão ser amplamente comentadas. Podemos começar!?
+
+* Eu vou escrever o DDL completo do banco. Você será apenas meu auxílio. Passarei imagens do modelo do banco quando for conveniente.

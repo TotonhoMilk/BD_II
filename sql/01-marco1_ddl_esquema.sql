@@ -104,3 +104,85 @@ CREATE TABLE IF NOT EXISTS curriculo_disciplina (
     FOREIGN KEY (disciplina_id)
     REFERENCES disciplina(disciplina_id)
 );   
+
+
+/* =====================================================================
+                TABELA PRE_REQUISITO
+   ===================================================================== */
+   
+CREATE TABLE IF NOT EXISTS pre_requisito (
+  disciplina_id INT,
+  requisito_id INT,
+  pre_requisito_vinculo VARCHAR(20), -- VINCULO_T
+
+  -- Definição das Chaves Primárias (PK)
+  PRIMARY KEY (disciplina_id, requisito_id),
+
+  -- Definição das Chaves Estrangeiras (FK)
+  CONSTRAINT fk_pre_requisito_disciplina
+    FOREIGN KEY (disciplina_id)
+    REFERENCES disciplina(disciplina_id)
+
+  -- Verificar com o professor sobre a FK do requisito_id
+);
+
+
+/* =====================================================================
+                TABELA PROFESSOR  
+   ===================================================================== */
+
+CREATE TABLE IF NOT EXISTS professor (
+  professor_id INT PRIMARY KEY,
+  professor_matricula VARCHAR(20) UNIQUE,
+  professor_nome VARCHAR(120),
+  professor_email VARCHAR(120) UNIQUE,
+  professor_titulacao VARCHAR(20)
+);
+
+
+/* =====================================================================
+                TABELA SALA
+   ===================================================================== */
+
+CREATE TABLE IF NOT EXISTS sala (
+  sala_id INT PRIMARY KEY,
+  campus_id SMALLINT,
+  sala_codigo VARCHAR(10),
+  sala_capacidade SMALLINT,
+  sala_tipo VARCHAR(10), -- TIPO_DISC_T
+  
+  -- Definição da Chave Estrangeira (FK)
+  CONSTRAINT fk_sala_campus
+    FOREIGN KEY (campus_id)
+    REFERENCES campus(campus_id)
+);
+
+
+/* =====================================================================
+                TABELA PERIODO_LETIVO
+   ===================================================================== */
+
+CREATE TABLE IF NOT EXISTS periodo_letivo (
+  periodo_letivo_id SMALLINT PRIMARY KEY,
+  periodo_ano SMALLINT,
+  periodo_semestre SMALLINT,
+  periodo_data_inicio DATE,
+  periodo_data_fim DATE
+);
+
+
+/* =====================================================================
+                TABELA FERIADO
+   ===================================================================== */
+
+CREATE TABLE IF NOT EXISTS feriado (
+  feriado_id INT PRIMARY KEY,
+  feriado_data DATE,
+  feriado_descricao VARCHAR(120),
+  campus_id SMALLINT
+
+  -- Definição de Chave Estrangeira (FK)
+  CONSTRAINT fk_feriado_campus
+    FOREIGN KEY (campus_id)
+    REFERENCES campus(campus_id)
+);
