@@ -26,9 +26,12 @@
 
 CREATE TABLE IF NOT EXISTS campus (
   campus_id SMALLINT PRIMARY KEY,
-  campus_nome VARCHAR(60) UNIQUE,
-  campus_cidade VARCHAR(60)
+  campus_nome VARCHAR(60) NOT NULL UNIQUE, -- Verificar se pode ser NULL!?
+  campus_cidade VARCHAR(60) NOT NULL       -- Verificar se pode ser NULL!?
 );
+
+-- Seguindo minha intuição acredito que esse campos não podem ser nulos.
+-- Ocasionaria quebra de integridade.
 
 
 /* =====================================================================
@@ -37,11 +40,11 @@ CREATE TABLE IF NOT EXISTS campus (
 
 CREATE TABLE IF NOT EXISTS curso (
   curso_id SMALLINT PRIMARY KEY,
-  curso_codigo VARCHAR(10) UNIQUE,
-  curso_nome VARCHAR(120),
+  curso_codigo VARCHAR(10) NOT NULL UNIQUE, -- Verificar se pode ser NULL!?
+  curso_nome VARCHAR(120) NOT NULL,         -- Verificar se pode ser NULL!?
   curso_grau VARCHAR(20),
   curso_ch_total INT,
-  campus_id SMALLINT,
+  campus_id SMALLINT NOT NULL,              -- Verificar se pode ser NULL!?
 
   -- Definição de Chave Estrangeira (FK)
   CONSTRAINT fk_curso_campus
@@ -56,9 +59,9 @@ CREATE TABLE IF NOT EXISTS curso (
 
 CREATE TABLE IF NOT EXISTS curriculo (
   curriculo_id INT PRIMARY KEY,
-  curso_id SMALLINT,
-  curriculo_ano_vigencia SMALLINT,
-  curriculo_ativo BOOLEAN,
+  curso_id SMALLINT NOT NULL,                -- Verificar se pode ser NULL!?
+  curriculo_ano_vigencia SMALLINT NOT NULL,  -- Verificar se pode ser NULL!?
+  curriculo_ativo BOOLEAN DEFAULT FALSE,     -- Verificar se pode ser false por padrão!?
 
   -- Definição de Chave Estrangeira (FK)
   CONSTRAINT fk_curriculo_curso
@@ -73,13 +76,52 @@ CREATE TABLE IF NOT EXISTS curriculo (
 
 CREATE TABLE IF NOT EXISTS disciplina (
   disciplina_id INT PRIMARY KEY,
-  disciplina_codigo VARCHAR(10) UNIQUE,
-  disciplina_nome VARCHAR(120),
+  disciplina_codigo VARCHAR(10) NOT NULL UNIQUE, -- Verificar se pode ser NULL!?
+  disciplina_nome VARCHAR(120) NOT NULL,         -- Verificar se pode ser NULL!?
+
+  -- Campos ch_teorica e ch_pratica inseridos pelo Usuário
   disciplina_ch_teorica SMALLINT,
   disciplina_ch_pratica SMALLINT,
-  disciplina_ch_total SMALLINT,
+
+  -- Coluna computada --> Soma automática com tratamento de NULL
+  disciplina_ch_total SMALLINT
+    GENERATED ALWAYS AS (
+      COALESCE(disciplina_ch_teorica, 0) +
+      COALESCE(disciplina_ch_pratica, 0)
+    ) STORED,
+
   disciplina_ementa TEXT
 );
+
+
+
+/* =====================================================================
+                ENUM TYPE PARA TIPO_DISC_T
+   ===================================================================== */
+
+-- CREATE TYPE tipo_disc_t AS ENUM ('OBR', 'OPT', 'ELET');
+--
+-- Aceita os valores 'OBR' --> 'Obrigatória'
+--                   'OPT' --> 'Optativa'
+--                   'ELET'--> 'Eletiva'
+--
+-- O código acima funciona muito bem se for rodado somente uma vez. Se rodar novamente  
+-- dará erro, porque o tipo já vai existir na tabela interna do PostgreSQL, pg_type.
+-- Então, após pesquisa e consulta ao meu assistente de IA, cheguei a uma forma que
+-- permite que o código seja rodado quantas vezes quiser. Verificando a existência
+-- do tipo tipo_disc_t na tabela pg_type. A seguir:
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+      SELECT 1
+      FROM pg_type
+      WHERE typname = 'tipo_disc_t'
+        AND typnamespace = 'public'::regnamespace
+    ) THEN
+      CREATE TYPE tipo_disc_t AS ENUM('OBR', 'OPT', 'ELET');
+  END IF;
+END $$;
 
 
 /* =====================================================================
@@ -87,10 +129,10 @@ CREATE TABLE IF NOT EXISTS disciplina (
    ===================================================================== */
 
 CREATE TABLE IF NOT EXISTS curriculo_disciplina (
-  curriculo_id INT,
-  disciplina_id INT,
-  curriculo_disciplina_periodo SMALLINT,
-  curriculo_disciplina_tipo VARCHAR(20), -- TIPO_DISC_T
+  curriculo_id INT NOT NULL,                      -- Verificar se pode ser NULL!?
+  disciplina_id INT NOT NULL,                     -- Verificar se pode ser NULL!?
+  curriculo_disciplina_periodo SMALLINT NOT NULL, -- Verificar se pode ser NULL!?
+  curriculo_disciplina_tipo tipo_disc_t,          -- Conforme tipo enum criado.
 
   -- Definição das Chaves Primárias (PK)
   PRIMARY KEY (curriculo_id, disciplina_id),
@@ -105,6 +147,7 @@ CREATE TABLE IF NOT EXISTS curriculo_disciplina (
     REFERENCES disciplina(disciplina_id)
 );   
 
+-- DAQUI PRA FRENTE AINDA NÃO FOI REVISADO!
 
 /* =====================================================================
                 TABELA PRE_REQUISITO

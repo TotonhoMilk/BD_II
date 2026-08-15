@@ -24,3 +24,7 @@ Estruturação do projeto de Banco de Dados 2
 * Você é meu assistente no trabalho de banco de dados que estou fazendo. O modelo físico foi entregue pelo professor, eu tenho que criar o DDL do banco. Você será meu assistente. Onde eu poderei tirar possíveis dúvidas. Pretendo aprender o máximo possível com cada passo, então, as respostas deverão ser amplamente comentadas. Podemos começar!?
 
 * Eu vou escrever o DDL completo do banco. Você será apenas meu auxílio. Passarei imagens do modelo do banco quando for conveniente.
+
+* No modelo o que sinifica o tipo de dado tipo_disc_t, e como implementa-lo?
+
+* na tabela disciplina, o campo ch_total deve ser gerado pela soma dos campos ch_teorica + ch_pratica. Como devo fazer?
