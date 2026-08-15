@@ -84,6 +84,7 @@ CREATE TABLE IF NOT EXISTS disciplina (
   disciplina_ch_pratica SMALLINT,
 
   -- Coluna computada --> Soma automática com tratamento de NULL
+  -- O COALESCE vai alterar o NULL para 0.
   disciplina_ch_total SMALLINT
     GENERATED ALWAYS AS (
       COALESCE(disciplina_ch_teorica, 0) +
@@ -92,7 +93,6 @@ CREATE TABLE IF NOT EXISTS disciplina (
 
   disciplina_ementa TEXT
 );
-
 
 
 /* =====================================================================
