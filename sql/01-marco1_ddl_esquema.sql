@@ -189,7 +189,7 @@ CREATE TABLE IF NOT EXISTS feriado (
 
 
 /* =====================================================================
-                tabela turma
+                TABELA TURMA
    ===================================================================== */
 
 CREATE TABLE IF NOT EXISTS turma (
@@ -204,11 +204,11 @@ CREATE TABLE IF NOT EXISTS turma (
   -- Definição de Chaves Estrangeiras (FK)
   CONSTRAINT fk_turma_disciplina
     FOREIGN KEY (disciplina_id)
-    REFERENCES disciplina(disciplina_id)
+    REFERENCES disciplina(disciplina_id),
 
   CONSTRAINT fk_turma_periodo_letivo
     FOREIGN KEY (periodo_letivo_id)
-    REFERENCES periodo_letivo(periodo_letivo_id)
+    REFERENCES periodo_letivo(periodo_letivo_id),
 
   CONSTRAINT fk_turma_professor
     FOREIGN KEY (professor_id)
@@ -225,14 +225,102 @@ CREATE TABLE IF NOT EXISTS turma_horario (
   turma_id INT,
   sala_id INT,
   turma_horario_dia_semana SMALLINT,
-  turma_horario_faixa TIMERANGE,
+  turma_horario_faixa VARCHAR(20), -- TIMERANGE
 
   -- Definição das Chaves Estrangeiras (FK)
   CONSTRAINT fk_turma_horario_turma
     FOREIGN KEY (turma_id)
-    REFERENCES turma(turma_id)
+    REFERENCES turma(turma_id),
 
   CONSTRAINT fk_turma_horario_sala
     FOREIGN KEY (sala_id)
     REFERENCES sala(sala_id)
+);
+
+
+/* =====================================================================
+                TABELA ALUNO  
+   ===================================================================== */
+
+CREATE TABLE IF NOT EXISTS aluno (
+  aluno_id INT PRIMARY KEY,
+  aluno_matricula VARCHAR(20) UNIQUE,
+  aluno_nome VARCHAR(120),
+  aluno_cpf CHAR(11) UNIQUE,
+  aluno_email VARCHAR(120) UNIQUE,
+  aluno_nascimento DATE,
+  curso_id SMALLINT,
+  curriculo_id INT,
+  aluno_ingresso DATE,
+  aluno_ativo BOOLEAN,
+
+  -- Definição das Chaves Estrangeiras (FK)
+  CONSTRAINT fk_aluno_curso
+    FOREIGN KEY (curso_id)
+    REFERENCES curso(curso_id),
+
+  CONSTRAINT fk_aluno_curriculo
+    FOREIGN KEY (curriculo_id)
+    REFERENCES curriculo(curriculo_id)
+);
+
+
+/* =====================================================================
+                TABELA MATRICULA  
+   ===================================================================== */
+
+CREATE TABLE IF NOT EXISTS matricula (
+  matricula_id INT PRIMARY KEY,
+  aluno_id INT,
+  turma_id INT,
+  matricula_data_matricula TIMESTAMPTZ,
+  matricula_status VARCHAR(20), -- status_mat_t
+
+  -- Definição das Chaves Estrangeiras (FK)
+  CONSTRAINT fk_matricula_aluno
+    FOREIGN KEY (aluno_id)
+    REFERENCES aluno(aluno_id),
+
+  CONSTRAINT fk_matricula_turma
+    FOREIGN KEY (turma_id)
+    REFERENCES turma(turma_id)
+);
+
+/* =====================================================================
+                TABELA LOG_MATRICULA  
+   ===================================================================== */
+
+CREATE TABLE IF NOT EXISTS log_matricula (
+  log_matricula_id BIGINT PRIMARY KEY,
+  matricula_id INT,
+  log_matricula_acao VARCHAR(20),
+  log_matricula_ocorrido_em TIMESTAMPTZ,
+  log_matricula_usuario NAME,
+  log_matricula_detalhe JSONB,
+
+  -- Definição da Chave Estrangeira (FK)
+  CONSTRAINT fk_log_matricula_matricula
+    FOREIGN KEY (matricula_id)
+    REFERENCES matricula(matricula_id)
+);
+
+
+/* =====================================================================
+                TABELA HISTORICO
+   ===================================================================== */
+
+CREATE TABLE IF NOT EXISTS historico (
+  historico_id INT PRIMARY KEY,
+  matricula_id INT,
+  historico_nota_a1 FLOAT, -- NOTA_T
+  historico_nota_a2 FLOAT, -- NOTA_T
+  historico_nota_p3 FLOAT, -- NOTA_T
+  historico_frequencia VARCHAR(20), --PCT_T
+  historico_situacao VARCHAR(20), -- SITUACAO_T
+  historico_media_final NUMERIC(4, 2),
+
+  -- Definição da Chave Estrangeira (FK)
+  CONSTRAINT fk_historico_matricula
+    FOREIGN KEY (matricula_id)
+    REFERENCES matricula(matricula_id)
 );
