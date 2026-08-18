@@ -16,7 +16,7 @@
      - Carlos Eduardo ... (A preencher)
 
    DATA DE CRIAÇÃO:   18/09/2026
-   DATA DE ALTERAÇÃO: 18/09/2026
+   DATA DE ALTERAÇÃO: 18/09/2026 - Antônio
 
    HISTÓRICO DE REVISÕES: Verificar GitHub
      - https://github.com/TotonhoMilk/BD_II
@@ -51,9 +51,9 @@ CREATE SCHEMA academico;
 -- retire o termo da linha de comando.
 SET search_path TO academico, public;
 
--- Cria a extensão "btree_gist" para viabilizar o suporte a 
--- índices GiST em tipos tradicionais de dados, essencial para a validação 
--- de restrições avançadas de integridade.
+-- Cria a extensão "btree_gist" para viabilizar o suporte a índices GiST 
+-- em tipos tradicionais de dados, essencial para a validação de 
+-- restrições avançadas de integridade.
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 
 -- =====================================================================
@@ -139,21 +139,62 @@ CREATE TYPE timerange AS RANGE (subtype = time);
 
 /* ---------------------------------------------------------------------
    TABELA 1: CAMPUS
-   --------------------------------------------------------------------- */
+   --------------------------------------------------------------------- 
+      +---------------------+
+      | CAMPUS              |
+      +---------------------+
+      | CAMPUS_ID      (PK) |
+      | CAMPUS_NOME         |
+      | CAMPUS_CIDADE       |
+      +---------------------+
+      
+      Cria a tabela campus.
+          campo_id como chave primária.
+          campo_nome, único e não nulo.
+          campo_cidade não nulo.
+  */
 
-CREATE TABLE campus (                                                 -- Cria a tabela campus.
-    campus_id      smallint GENERATED ALWAYS AS IDENTITY PRIMARY KEY, -- Cria o campo id como chave primária.
-    campus_nome    varchar(60) NOT NULL UNIQUE,                       -- Cria o campo nome, único e não nulo.
-    campus_cidade  varchar(60) NOT NULL                               -- Cria o campo cidade não nulo.
+CREATE TABLE campus (
+    campus_id      smallint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    campus_nome    varchar(60) NOT NULL UNIQUE,
+    campus_cidade  varchar(60) NOT NULL
 );
+
 -- ---------------------------------------------------------------------
 
 
 /* ---------------------------------------------------------------------
    TABELA 2: CURSO
-   --------------------------------------------------------------------- */
+   --------------------------------------------------------------------- 
+      +---------------------+
+      | CURSO               |
+      +---------------------+
+      | CURSO_ID       (PK) |
+      | CURSO_CODIGO        |
+      | CURSO_NOME          |
+      | CURSO_GRAU          |
+      | CURSO_CH_TOTAL      |
+      |                     |
+      | CAMPUS_ID      (FK) |
+      +---------------------+
 
+      Cria a tabela curso.
+          curso_id como chave primária
+          curso_codigo, único e não nulo.
+          curso_nome não nulo.
+          curso_grau não nulo, campo de seleção restrita.
+          curso_ch_total, não nulo e maior que zero.
+          campus_id chave estrangeira com referencia à tabela campus.
+  */
 
-
+CREATE TABLE curso (
+    curso_id         smallint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    curso_codigo     varchar(10) NOT NULL UNIQUE,
+    curso_nome       varchar(120) NOT NULL,
+    curso_grau       varchar(20) NOT NULL
+                        CHECK (grau IN ('BACHARELADO','LICENCIATURA','TECNOLOGO')),
+    curso_ch_total   integer NOT NULL CHECK (ch_total > 0),
+    campus_id        smallint NOT NULL REFERENCES campus ON DELETE RESTRICT
+);
 
 -- ---------------------------------------------------------------------
