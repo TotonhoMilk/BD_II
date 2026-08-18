@@ -10,7 +10,7 @@
 	
   * Alexandre Vieira Da Silva.  
   * Antônio Alexandre Cavalcante Leite.  
-  * Carlos Eduardo (...).  
+  * Carlos Eduardo Sousa Barcelos.  
 ---
 
 ## 📂 Estrutura de Pastas e Arquivos

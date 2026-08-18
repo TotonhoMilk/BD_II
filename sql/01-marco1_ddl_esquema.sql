@@ -13,7 +13,7 @@
    AUTORES:
      - Alexandre Vieira Da Silva - 2512130008
      - Antônio Alexandre Cavalcante Leite - 2512130086
-     - Carlos Eduardo ... (A preencher)
+     - Carlos Eduardo Sousa Barcelos - 2512130003
      
    HISTÓRICO DE REVISÕES: Verificar GitHub
      - https://github.com/TotonhoMilk/BD_II
