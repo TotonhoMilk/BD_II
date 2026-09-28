@@ -15,7 +15,7 @@
      2. Executar "02_carga_dados_iniciais.sql" (Povoamento)
    
    AUTORES:
-     - Alexandre ... (A preencher)
+     - Alexandre Vieira Da Silva - 2512130008
      - Antônio Alexandre Cavalcante Leite - 2512130086
      - Carlos Eduardo ... (A preencher)
      
