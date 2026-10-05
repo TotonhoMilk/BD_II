@@ -23,30 +23,7 @@ Estas sessões não produziram arquivos do repositório, mas foram onde aprendi 
 ---
 
 ## Sessão 1 — 19/09: plano de estudo e junções
-
-### Prompts (literais)
-
-1. > ok, temos hoje até segunda para se preparar para P1 de BD2
-
-2. > antes temos que verificar o plano de ensino e visualizar o que vai ser cobrado na P1
-
-3. > parece que a prova vai ser 100% de alternativas, e o professor falou que em BD2 e IA o foco é mais em projeto do que nas provas [...] até agora, só teve um material de aula, veja
-
-4. > na verdade, prefiro usar o dbeaver, indicado pelo professor
-
-5. > quando fui rodar SET search_path TO academico, public; deu No active connection
-
-6. > INNER JOIN devolve dois pares, o id 1 e 2, em 3 linhas?
-
-7. > devolve 4 linhas?
-
-8. > eu verifiquei no dbeaver, e deu 160 e 170
-
-9. > fazer um select com exclusão do nome ou id do Bruno?
-
-10. > no caso, eu deveria fazer uma consulta para saber se há algum professor com o ???
-
-11. > not_in = 0
+...
 
 ### O que aprendi
 
