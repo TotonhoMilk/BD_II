@@ -16,9 +16,9 @@
    BANCO DE DADOS: matricula
    
    AUTORES:
-     - Alexandre Vieira
-     - Antônio Alexandre - 2512130086
-     - Carlos Eduardo
+     - Alexandre Vieira Da Silva - 2512130008
+     - Antônio Alexandre Cavalcante Leite - 2512130086
+     - Carlos Eduardo Sousa Barcelos - 2512130003
      
    HISTÓRICO DE REVISÕES: Verificar GitHub
      - https://github.com/TotonhoMilk/BD_II
@@ -1891,3 +1891,739 @@ INSERT INTO tb_historico (id_matricula, nota_a1_historico, nota_a2_historico, no
 (694, 8.00, 7.00, NULL, 90.00), (695, 8.00, 8.00, NULL, 80.00), (696, 6.50, 6.50, NULL, 95.00),
 (697, 9.50, 9.50, NULL, 85.00), (698, 9.00, 9.00, NULL, 90.00), (699, 4.50, 4.50, 5.00, 60.00),
 (700, 9.00, 10.00, NULL, 100.00);
+
+
+/* =====================================================================
+   ARQUIVO: 02_consultas.sql
+   DESCRIÇÃO: 10 consultas do Marco 1, da mais simples para a mais complexa.
+   PRÉ-REQUISITO: 01_ddl.sql
+   Regra de aprovação usada: média final >= 5,0 E frequência >= 75%.
+   ===================================================================== */
+
+SET search_path TO academico, public;
+
+-- ---------------------------------------------------------------------
+-- 1) Lista de alunos com o curso de cada um (JOIN simples)
+--    aluno -> pessoa (nome) e aluno -> currículo -> curso
+-- ---------------------------------------------------------------------
+SELECT a.matricula_aluno,
+       p.nome_pessoa,
+       c.nome_curso,
+       a.status_detalhado_aluno
+FROM tb_aluno a
+JOIN tb_pessoa    p  ON p.id_pessoa    = a.id_pessoa
+JOIN tb_curriculo cr ON cr.id_curriculo = a.id_curriculo
+JOIN tb_curso     c  ON c.id_curso     = cr.id_curso
+ORDER BY p.nome_pessoa;
+
+
+-- ---------------------------------------------------------------------
+-- 2) Grade de 2026/2: turma, disciplina, professor, dia, horário e sala
+--    (vários JOINs; o horário é um TIMERANGE, então usamos lower/upper)
+-- ---------------------------------------------------------------------
+SELECT t.codigo_turma,
+       d.nome_disciplina,
+       pp.nome_pessoa                 AS professor,
+       th.dia_semana_turma_horario    AS dia_semana,
+       lower(th.faixa_turma_horario)  AS inicio,
+       upper(th.faixa_turma_horario)  AS fim,
+       s.codigo_sala
+FROM tb_turma t
+JOIN tb_periodo_letivo pl ON pl.id_periodo_letivo = t.id_periodo_letivo
+JOIN tb_disciplina d      ON d.id_disciplina      = t.id_disciplina
+JOIN tb_turma_horario th  ON th.id_turma          = t.id_turma
+JOIN tb_sala s            ON s.id_sala            = th.id_sala
+LEFT JOIN tb_funcionario f ON f.id_funcionario    = t.id_professor
+LEFT JOIN tb_pessoa pp     ON pp.id_pessoa        = f.id_pessoa
+WHERE pl.ano_periodo_letivo = 2026 AND pl.semestre_periodo_letivo = 2
+ORDER BY th.dia_semana_turma_horario;
+
+
+-- ---------------------------------------------------------------------
+-- 3) JUNÇÃO EXTERNA COM AGREGAÇÃO (obrigatória)
+--    Todas as disciplinas com o total de turmas e de matrículas ativas.
+--    O LEFT JOIN garante que a disciplina aparece mesmo sem turma ou sem
+--    aluno (nesse caso o COUNT da coluna da direita dá 0).
+-- ---------------------------------------------------------------------
+SELECT d.codigo_disciplina,
+       d.nome_disciplina,
+       COUNT(DISTINCT t.id_turma)  AS qtd_turmas,
+       COUNT(m.id_matricula)       AS qtd_matriculados
+FROM tb_disciplina d
+LEFT JOIN tb_turma t     ON t.id_disciplina = d.id_disciplina
+LEFT JOIN tb_matricula m ON m.id_turma = t.id_turma
+                        AND m.status_matricula = 'MATRICULADO'  -- filtro no ON para não virar INNER JOIN
+GROUP BY d.codigo_disciplina, d.nome_disciplina
+ORDER BY qtd_matriculados DESC;
+
+
+-- ---------------------------------------------------------------------
+-- 4) Agregação com HAVING: alunos com média geral >= 7 nas disciplinas
+--    já concluídas (só conta histórico com média calculada)
+-- ---------------------------------------------------------------------
+SELECT a.matricula_aluno,
+       p.nome_pessoa,
+       COUNT(*)                    AS disciplinas_cursadas,
+       ROUND(AVG(h.media_final), 2) AS media_geral
+FROM tb_historico h
+JOIN tb_matricula m ON m.id_matricula = h.id_matricula
+JOIN tb_aluno a     ON a.id_aluno     = m.id_aluno
+JOIN tb_pessoa p    ON p.id_pessoa    = a.id_pessoa
+WHERE h.media_final IS NOT NULL
+GROUP BY a.matricula_aluno, p.nome_pessoa
+HAVING AVG(h.media_final) >= 7
+ORDER BY media_geral DESC;
+
+
+-- ---------------------------------------------------------------------
+-- 5) Subconsulta com EXISTS: alunos reprovados por FALTA em alguma
+--    disciplina (frequência abaixo de 75%)
+-- ---------------------------------------------------------------------
+SELECT a.matricula_aluno, p.nome_pessoa
+FROM tb_aluno a
+JOIN tb_pessoa p ON p.id_pessoa = a.id_pessoa
+WHERE EXISTS (
+    SELECT 1
+    FROM tb_matricula m
+    JOIN tb_historico h ON h.id_matricula = m.id_matricula
+    WHERE m.id_aluno = a.id_aluno
+      AND h.frequencia_historico < 75
+)
+ORDER BY p.nome_pessoa;
+
+
+-- ---------------------------------------------------------------------
+-- 6) CTE + CASE: taxa de aprovação por disciplina
+--    A CTE "situacao" classifica cada histórico; depois a consulta de
+--    baixo conta quantos de cada tipo (SUM de 1 e 0).
+-- ---------------------------------------------------------------------
+WITH situacao AS (
+    SELECT t.id_disciplina,
+           CASE
+             WHEN h.frequencia_historico < 75 THEN 'REPROVADO_FALTA'
+             WHEN h.media_final < 5           THEN 'REPROVADO_NOTA'
+             ELSE 'APROVADO'
+           END AS resultado
+    FROM tb_historico h
+    JOIN tb_matricula m ON m.id_matricula = h.id_matricula
+    JOIN tb_turma t     ON t.id_turma     = m.id_turma
+    WHERE h.media_final IS NOT NULL
+)
+SELECT d.nome_disciplina,
+       COUNT(*) AS total,
+       SUM(CASE WHEN s.resultado = 'APROVADO'        THEN 1 ELSE 0 END) AS aprovados,
+       SUM(CASE WHEN s.resultado = 'REPROVADO_NOTA'  THEN 1 ELSE 0 END) AS reprovados_nota,
+       SUM(CASE WHEN s.resultado = 'REPROVADO_FALTA' THEN 1 ELSE 0 END) AS reprovados_falta
+FROM situacao s
+JOIN tb_disciplina d ON d.id_disciplina = s.id_disciplina
+GROUP BY d.nome_disciplina
+ORDER BY d.nome_disciplina;
+
+
+-- ---------------------------------------------------------------------
+-- 7) CONSULTA RECURSIVA - árvore de pré-requisitos (obrigatória)
+--    Parte 1 (âncora): a disciplina escolhida (IA), nível 0.
+--    Parte 2 (recursiva): os pré-requisitos de quem já está na lista,
+--    com nível + 1. Repete até não achar mais nenhum.
+-- ---------------------------------------------------------------------
+WITH RECURSIVE arvore AS (
+    SELECT id_disciplina, nome_disciplina, 0 AS nivel
+    FROM tb_disciplina
+    WHERE codigo_disciplina = 'ENG022'          -- Inteligência Artificial
+
+    UNION ALL
+
+    SELECT req.id_disciplina, req.nome_disciplina, a.nivel + 1
+    FROM arvore a
+    JOIN tb_pre_requisito pr ON pr.id_disciplina = a.id_disciplina
+    JOIN tb_disciplina req   ON req.id_disciplina = pr.id_requisito
+    WHERE pr.vinculo_pre_requisito = 'PRE_REQUISITO'
+      AND a.nivel < 10                          -- trava de segurança caso exista ciclo
+)
+SELECT nivel, nome_disciplina
+FROM arvore
+ORDER BY nivel, nome_disciplina;
+
+
+-- ---------------------------------------------------------------------
+-- 8) CONSULTA RECURSIVA - disciplinas que o aluno 1 já pode cursar (obrigatória)
+--    "requisitos": para cada disciplina, todos os pré-requisitos, diretos
+--    e indiretos (ex.: IA exige BD II, que exige POO -> IA exige POO).
+--    "aprovadas": disciplinas que o aluno 1 já passou.
+--    Resultado: disciplinas que ele ainda não passou e que não têm
+--    nenhum requisito fora da lista de aprovadas.
+--    Para testar outro aluno, troque o "m.id_aluno = 1".
+-- ---------------------------------------------------------------------
+WITH RECURSIVE requisitos AS (
+    SELECT id_disciplina, id_requisito
+    FROM tb_pre_requisito
+    WHERE vinculo_pre_requisito = 'PRE_REQUISITO'
+
+    UNION
+
+    SELECT r.id_disciplina, pr.id_requisito
+    FROM requisitos r
+    JOIN tb_pre_requisito pr ON pr.id_disciplina = r.id_requisito
+    WHERE pr.vinculo_pre_requisito = 'PRE_REQUISITO'
+),
+aprovadas AS (
+    SELECT t.id_disciplina
+    FROM tb_historico h
+    JOIN tb_matricula m ON m.id_matricula = h.id_matricula
+    JOIN tb_turma t     ON t.id_turma     = m.id_turma
+    WHERE m.id_aluno = 1
+      AND h.media_final >= 5
+      AND h.frequencia_historico >= 75
+)
+SELECT d.codigo_disciplina, d.nome_disciplina
+FROM tb_disciplina d
+WHERE d.id_disciplina NOT IN (SELECT id_disciplina FROM aprovadas)
+  AND NOT EXISTS (
+        SELECT 1
+        FROM requisitos r
+        WHERE r.id_disciplina = d.id_disciplina
+          AND r.id_requisito NOT IN (SELECT id_disciplina FROM aprovadas)
+      )
+ORDER BY d.nome_disciplina;
+
+
+-- ---------------------------------------------------------------------
+-- 9) FUNÇÃO DE JANELA - ranking e percentil (obrigatória)
+--    Em cada turma concluída: a posição do aluno (RANK) e o percentil
+--    (PERCENT_RANK: 0 = melhor da turma, 1 = pior).
+--    PARTITION BY = "reinicia a contagem em cada turma".
+--    Diferente do GROUP BY, a janela não junta as linhas: cada aluno
+--    continua aparecendo.
+-- ---------------------------------------------------------------------
+SELECT t.id_turma,
+       d.nome_disciplina,
+       a.matricula_aluno,
+       h.media_final,
+       RANK() OVER (PARTITION BY t.id_turma ORDER BY h.media_final DESC) AS posicao,
+       ROUND(PERCENT_RANK() OVER (PARTITION BY t.id_turma ORDER BY h.media_final DESC)::numeric, 2) AS percentil
+FROM tb_historico h
+JOIN tb_matricula m  ON m.id_matricula  = h.id_matricula
+JOIN tb_aluno a      ON a.id_aluno      = m.id_aluno
+JOIN tb_turma t      ON t.id_turma      = m.id_turma
+JOIN tb_disciplina d ON d.id_disciplina = t.id_disciplina
+WHERE m.status_matricula = 'CONCLUIDO'
+ORDER BY t.id_turma, posicao;
+
+
+-- ---------------------------------------------------------------------
+-- 10) FUNÇÃO DE JANELA COM LAG - evolução do rendimento (obrigatória)
+--     Passo 1 (CTE medias): média de cada aluno em cada semestre.
+--     Passo 2 (CTE comparacao): LAG pega a média do semestre anterior do
+--             MESMO aluno (PARTITION BY id_aluno). No 1º semestre dá NULL.
+--     Passo 3: diferença entre o semestre atual e o anterior.
+-- ---------------------------------------------------------------------
+WITH medias AS (
+    SELECT m.id_aluno,
+           pl.ano_periodo_letivo      AS ano,
+           pl.semestre_periodo_letivo AS semestre,
+           ROUND(AVG(h.media_final), 2) AS media
+    FROM tb_historico h
+    JOIN tb_matricula m       ON m.id_matricula      = h.id_matricula
+    JOIN tb_turma t           ON t.id_turma          = m.id_turma
+    JOIN tb_periodo_letivo pl ON pl.id_periodo_letivo = t.id_periodo_letivo
+    WHERE m.status_matricula = 'CONCLUIDO'
+    GROUP BY m.id_aluno, pl.ano_periodo_letivo, pl.semestre_periodo_letivo
+),
+comparacao AS (
+    SELECT id_aluno, ano, semestre, media,
+           LAG(media) OVER (PARTITION BY id_aluno ORDER BY ano, semestre) AS media_anterior
+    FROM medias
+)
+SELECT id_aluno,
+       ano || '/' || semestre   AS periodo,
+       media,
+       media_anterior,
+       media - media_anterior   AS variacao   -- positivo = melhorou
+FROM comparacao
+ORDER BY id_aluno, ano, semestre;
+
+
+/* =====================================================================
+   ARQUIVO: 03_views.sql
+   DESCRIÇÃO: Marco 2 - 3 views (oferta, vagas, histórico) e
+              1 materialized view de indicadores por turma.
+   PRÉ-REQUISITO: 01
+   ===================================================================== */
+
+SET search_path TO academico, public;
+
+-- ---------------------------------------------------------------------
+-- VIEW 1: v_oferta - o que está sendo oferecido em cada período
+-- (turma, disciplina, professor, dia/horário e sala)
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE VIEW v_oferta AS
+SELECT t.id_turma,
+       pl.ano_periodo_letivo || '/' || pl.semestre_periodo_letivo AS periodo,
+       t.codigo_turma,
+       d.codigo_disciplina,
+       d.nome_disciplina,
+       t.turno_turma,
+       pp.nome_pessoa                AS professor,
+       th.dia_semana_turma_horario   AS dia_semana,
+       lower(th.faixa_turma_horario) AS inicio,
+       upper(th.faixa_turma_horario) AS fim,
+       s.codigo_sala
+FROM tb_turma t
+JOIN tb_periodo_letivo pl ON pl.id_periodo_letivo = t.id_periodo_letivo
+JOIN tb_disciplina d      ON d.id_disciplina      = t.id_disciplina
+LEFT JOIN tb_turma_horario th ON th.id_turma       = t.id_turma
+LEFT JOIN tb_sala s           ON s.id_sala         = th.id_sala
+LEFT JOIN tb_funcionario f    ON f.id_funcionario  = t.id_professor
+LEFT JOIN tb_pessoa pp        ON pp.id_pessoa      = f.id_pessoa;
+
+
+-- ---------------------------------------------------------------------
+-- VIEW 2: v_vagas - vagas totais, ocupadas e livres de cada turma
+-- Só conta matrícula com status MATRICULADO (trancado/cancelado libera vaga).
+-- Obs.: esta view NÃO é security_invoker de propósito: ela mostra só
+-- números agregados, então o aluno pode ver as vagas sem enxergar as
+-- matrículas dos colegas (que são protegidas por RLS).
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE VIEW v_vagas AS
+SELECT t.id_turma,
+       t.codigo_turma,
+       d.nome_disciplina,
+       t.vagas_turma                                   AS vagas,
+       COUNT(m.id_matricula)                           AS ocupadas,
+       t.vagas_turma - COUNT(m.id_matricula)           AS livres
+FROM tb_turma t
+JOIN tb_disciplina d     ON d.id_disciplina = t.id_disciplina
+LEFT JOIN tb_matricula m ON m.id_turma = t.id_turma
+                        AND m.status_matricula = 'MATRICULADO'
+GROUP BY t.id_turma, t.codigo_turma, d.nome_disciplina, t.vagas_turma;
+
+
+-- ---------------------------------------------------------------------
+-- VIEW 3: v_historico - histórico escolar com a situação final
+-- security_invoker = true: a view roda com as permissões de quem
+-- consulta, então o RLS de tb_historico/tb_matricula vale também aqui.
+-- Sem isso a view rodaria como o dono (bd2) e o aluno veria todo mundo.
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE VIEW v_historico WITH (security_invoker = true) AS
+SELECT a.id_aluno,
+       a.matricula_aluno,
+       p.nome_pessoa                 AS aluno,
+       pl.ano_periodo_letivo || '/' || pl.semestre_periodo_letivo AS periodo,
+       d.codigo_disciplina,
+       d.nome_disciplina,
+       h.nota_a1_historico           AS a1,
+       h.nota_a2_historico           AS a2,
+       h.nota_p3_historico           AS p3,
+       h.media_final,
+       h.frequencia_historico        AS frequencia,
+       CASE
+         WHEN h.media_final IS NULL       THEN 'EM CURSO'
+         WHEN h.frequencia_historico < 75 THEN 'REPROVADO POR FALTA'
+         WHEN h.media_final < 5           THEN 'REPROVADO POR NOTA'
+         ELSE 'APROVADO'
+       END                           AS situacao
+FROM tb_historico h
+JOIN tb_matricula m       ON m.id_matricula      = h.id_matricula
+JOIN tb_aluno a           ON a.id_aluno          = m.id_aluno
+JOIN tb_pessoa p          ON p.id_pessoa         = a.id_pessoa
+JOIN tb_turma t           ON t.id_turma          = m.id_turma
+JOIN tb_disciplina d      ON d.id_disciplina     = t.id_disciplina
+JOIN tb_periodo_letivo pl ON pl.id_periodo_letivo = t.id_periodo_letivo;
+
+
+-- ---------------------------------------------------------------------
+-- MATERIALIZED VIEW: mv_indicadores_turma
+-- Indicadores por turma: alunos, média, frequência média e % aprovação.
+--
+-- POLÍTICA DE ATUALIZAÇÃO (justificativa):
+--  * As notas e frequências só mudam no fechamento de cada avaliação
+--    (A1, A2, P3) e no fim do semestre - poucas vezes por semestre.
+--  * Os indicadores são consultados muito (coordenação, relatórios) e o
+--    cálculo junta 5 tabelas e agrega o histórico inteiro.
+--  * Por isso guardamos o resultado pronto e atualizamos:
+--      1) logo depois de cada fechamento de notas pela secretaria;
+--      2) e uma vez por noite (agendado fora do horário de aula).
+--  * Usamos REFRESH ... CONCURRENTLY: não bloqueia quem está lendo a MV
+--    durante a atualização. Para isso a MV precisa de um índice UNIQUE.
+--  * Custo aceito: os números podem ficar até 1 dia atrasados, o que não
+--    atrapalha um indicador gerencial.
+--
+-- Comando de atualização:
+--   REFRESH MATERIALIZED VIEW CONCURRENTLY academico.mv_indicadores_turma;
+-- ---------------------------------------------------------------------
+DROP MATERIALIZED VIEW IF EXISTS mv_indicadores_turma;
+
+CREATE MATERIALIZED VIEW mv_indicadores_turma AS
+SELECT t.id_turma,
+       pl.ano_periodo_letivo || '/' || pl.semestre_periodo_letivo AS periodo,
+       t.codigo_turma,
+       d.nome_disciplina,
+       COUNT(h.id_historico)                         AS alunos_com_nota,
+       ROUND(AVG(h.media_final), 2)                  AS media_turma,
+       ROUND(AVG(h.frequencia_historico), 1)         AS frequencia_media,
+       -- média de 100 (aprovado) e 0 (reprovado) = % de aprovação
+       ROUND(AVG(CASE WHEN h.media_final >= 5 AND h.frequencia_historico >= 75
+                      THEN 100.0 ELSE 0 END), 1)     AS pct_aprovacao
+FROM tb_turma t
+JOIN tb_periodo_letivo pl ON pl.id_periodo_letivo = t.id_periodo_letivo
+JOIN tb_disciplina d      ON d.id_disciplina      = t.id_disciplina
+LEFT JOIN tb_matricula m  ON m.id_turma           = t.id_turma
+LEFT JOIN tb_historico h  ON h.id_matricula       = m.id_matricula
+                         AND h.media_final IS NOT NULL
+GROUP BY t.id_turma, pl.ano_periodo_letivo, pl.semestre_periodo_letivo, t.codigo_turma, d.nome_disciplina;
+
+-- índice UNIQUE exigido pelo REFRESH CONCURRENTLY
+CREATE UNIQUE INDEX uq_mv_indicadores_turma ON mv_indicadores_turma (id_turma);
+
+
+
+/* =====================================================================
+   ARQUIVO: 04_volume_teste.sql
+   DESCRIÇÃO: Volume extra SÓ para medir os índices (Marco 2).
+              Com 100 alunos qualquer consulta é instantânea e o
+              PostgreSQL prefere ler a tabela inteira (Seq Scan), então
+              não dá para ver ganho de índice.
+              generate_series(1, N) gera os números de 1 até N, um por
+              linha (o enunciado permite usar). Com ele criamos:
+              20.000 alunos de teste, 400 turmas, 60.000 matrículas
+              e 60.000 linhas no log de matrícula.
+   PRÉ-REQUISITO: 01, 03
+   ===================================================================== */
+
+SET search_path TO academico, public;
+
+-- Semestre só para o volume de teste (2025/1)
+INSERT INTO tb_periodo_letivo (ano_periodo_letivo, semestre_periodo_letivo, bimestre_periodo_letivo, data_inicio_periodo_letivo, data_fim_periodo_letivo)
+VALUES (2025, 1, 1, '2025-02-01', '2025-06-30');
+
+-- 20.000 pessoas: "Aluno Teste 1", "Aluno Teste 2"...
+-- CPF = 9 + número com 10 dígitos (ex.: 90000000001)
+INSERT INTO tb_pessoa (nome_pessoa, cpf_pessoa, email_pessoa, nascimento_pessoa, id_cidade)
+SELECT 'Aluno Teste ' || n,
+       '9' || lpad(n::text, 10, '0'),
+       'teste' || n || '@aluno.iesb.br',
+       '2000-01-01',
+       1
+FROM generate_series(1, 20000) AS n;
+
+-- 20.000 alunos: matrícula = 2025 + número com 8 dígitos (ex.: 202500000001)
+INSERT INTO tb_aluno (id_pessoa, matricula_aluno, id_curriculo, ingresso_aluno)
+SELECT p.id_pessoa,
+       '2025' || lpad(n::text, 8, '0'),
+       1,
+       '2025-02-01'
+FROM generate_series(1, 20000) AS n
+JOIN tb_pessoa p ON p.cpf_pessoa = '9' || lpad(n::text, 10, '0');
+
+-- 400 turmas: VOL1 até VOL400
+INSERT INTO tb_turma (codigo_turma, id_disciplina, id_periodo_letivo, id_professor, turno_turma, vagas_turma)
+SELECT 'VOL' || n,
+       n % 6 + 1,                                   -- disciplina de 1 a 6
+       (SELECT id_periodo_letivo FROM tb_periodo_letivo
+        WHERE ano_periodo_letivo = 2025 AND semestre_periodo_letivo = 1),
+       n % 6 + 1,                                   -- professor de 1 a 6
+       'NOTURNO',
+       200
+FROM generate_series(1, 400) AS n;
+
+-- Cada aluno de teste em 3 turmas: VOL(n), VOL(n+1) e VOL(n+2),
+-- "dando a volta" depois da 400 (% 400 = resto da divisão por 400).
+INSERT INTO tb_matricula (id_aluno, id_turma, data_matricula, status_matricula)
+SELECT a.id_aluno, t.id_turma, '2025-02-05', 'CONCLUIDO'
+FROM generate_series(1, 20000) AS n
+JOIN tb_aluno a ON a.matricula_aluno = '2025' || lpad(n::text, 8, '0')
+JOIN tb_turma t ON t.codigo_turma = 'VOL' || (n % 400 + 1);
+
+INSERT INTO tb_matricula (id_aluno, id_turma, data_matricula, status_matricula)
+SELECT a.id_aluno, t.id_turma, '2025-02-05', 'CONCLUIDO'
+FROM generate_series(1, 20000) AS n
+JOIN tb_aluno a ON a.matricula_aluno = '2025' || lpad(n::text, 8, '0')
+JOIN tb_turma t ON t.codigo_turma = 'VOL' || ((n + 1) % 400 + 1);
+
+INSERT INTO tb_matricula (id_aluno, id_turma, data_matricula, status_matricula)
+SELECT a.id_aluno, t.id_turma, '2025-02-05', 'CONCLUIDO'
+FROM generate_series(1, 20000) AS n
+JOIN tb_aluno a ON a.matricula_aluno = '2025' || lpad(n::text, 8, '0')
+JOIN tb_turma t ON t.codigo_turma = 'VOL' || ((n + 2) % 400 + 1);
+
+-- Histórico das 60.000 matrículas de teste.
+-- Notas de 0 a 10 e frequência de 60 a 100, variando pelo id (sem random,
+-- para o resultado ser sempre o mesmo).
+INSERT INTO tb_historico (id_matricula, nota_a1_historico, nota_a2_historico, frequencia_historico)
+SELECT m.id_matricula,
+       m.id_matricula % 11,
+       (m.id_matricula * 3) % 11,
+       60 + m.id_matricula % 41
+FROM tb_matricula m
+JOIN tb_turma t ON t.id_turma = m.id_turma
+WHERE t.codigo_turma LIKE 'VOL%';
+
+-- Log das 60.000 matrículas de teste (para os índices do log).
+-- O detalhe é montado como texto JSON e convertido com ::jsonb.
+INSERT INTO tb_log_matricula (id_matricula, acao_log_matricula, detalhe_log_matricula)
+SELECT m.id_matricula,
+       'INSERT',
+       ('{"id_aluno": ' || m.id_aluno || ', "id_turma": ' || m.id_turma || '}')::jsonb
+FROM tb_matricula m
+JOIN tb_turma t ON t.id_turma = m.id_turma
+WHERE t.codigo_turma LIKE 'VOL%';
+
+-- Atualiza as estatísticas que o planejador usa para escolher o plano
+ANALYZE;
+
+-- Atualiza a materialized view com os novos dados
+REFRESH MATERIALIZED VIEW mv_indicadores_turma;
+
+
+/* =====================================================================
+   ARQUIVO: 05_indices.sql
+   DESCRIÇÃO: Marco 2 - índices com EXPLAIN (ANALYZE, BUFFERS) antes e
+              depois de cada um. Resultado medido em docs/EXPLAIN.md.
+   PRÉ-REQUISITO: 01, 03 e 04 (o volume de teste é necessário para
+                  o planejador escolher o índice).
+   Para repetir a medição, rode o arquivo inteiro: ele apaga os índices
+   no começo de cada bloco.
+   ===================================================================== */
+
+SET search_path TO academico, public;
+
+-- =====================================================================
+-- ÍNDICE 1 (PARCIAL): matrículas ativas por turma
+-- Consulta: quantas vagas a turma já tem ocupadas. Roda em toda tentativa
+-- de matrícula (e é a consulta da disputa pela última vaga).
+-- Por que parcial: só interessam as matrículas MATRICULADO (semestre
+-- atual). As CONCLUIDO, que são a maioria, ficam fora do índice, então
+-- ele fica bem menor. O UNIQUE (id_aluno, id_turma) não ajuda porque
+-- começa por id_aluno.
+-- =====================================================================
+DROP INDEX IF EXISTS idx_matricula_turma_ativa;
+
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT COUNT(*) FROM tb_matricula
+WHERE id_turma = 1 AND status_matricula = 'MATRICULADO';
+
+CREATE INDEX idx_matricula_turma_ativa
+    ON tb_matricula (id_turma)
+    WHERE status_matricula = 'MATRICULADO';
+ANALYZE tb_matricula;
+
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT COUNT(*) FROM tb_matricula
+WHERE id_turma = 1 AND status_matricula = 'MATRICULADO';
+
+
+-- =====================================================================
+-- ÍNDICE 2 (EXPRESSÃO): busca de pessoa pelo começo do nome
+-- Consulta da secretaria: digitar o início do nome, sem diferenciar
+-- maiúscula/minúscula. O índice é em lower(nome) e usa
+-- text_pattern_ops para o LIKE 'abc%' poder usar o índice.
+-- =====================================================================
+DROP INDEX IF EXISTS idx_pessoa_nome_lower;
+
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT id_pessoa, nome_pessoa FROM tb_pessoa
+WHERE lower(nome_pessoa) LIKE 'aluno teste 1234%';
+
+CREATE INDEX idx_pessoa_nome_lower
+    ON tb_pessoa (lower(nome_pessoa) text_pattern_ops);
+ANALYZE tb_pessoa;
+
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT id_pessoa, nome_pessoa FROM tb_pessoa
+WHERE lower(nome_pessoa) LIKE 'aluno teste 1234%';
+
+
+-- =====================================================================
+-- ÍNDICE 3 (ORDENAÇÃO): log de matrícula pela data, da mais nova para a mais antiga
+-- Consulta: os 20 últimos registros do log (o que aconteceu por último).
+-- Sem índice o banco lê o log inteiro e ORDENA tudo (Sort) só para
+-- devolver 20 linhas. Com o índice em ordem DESC ele lê as 20 primeiras
+-- entradas do índice e para (LIMIT), sem Sort.
+-- =====================================================================
+DROP INDEX IF EXISTS idx_log_matricula_data;
+
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT id_matricula, acao_log_matricula, ocorrido_em_log_matricula
+FROM tb_log_matricula
+ORDER BY ocorrido_em_log_matricula DESC
+LIMIT 20;
+
+CREATE INDEX idx_log_matricula_data
+    ON tb_log_matricula (ocorrido_em_log_matricula DESC);
+ANALYZE tb_log_matricula;
+
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT id_matricula, acao_log_matricula, ocorrido_em_log_matricula
+FROM tb_log_matricula
+ORDER BY ocorrido_em_log_matricula DESC
+LIMIT 20;
+
+
+-- =====================================================================
+-- ÍNDICE 4 (B-TREE em coluna gerada): alunos com média alta
+-- Consulta: históricos com média >= 9,5 (ex.: lista de mérito).
+-- media_final é coluna GERADA (STORED), então pode ser indexada como
+-- uma coluna normal.
+-- =====================================================================
+DROP INDEX IF EXISTS idx_historico_media;
+
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT id_matricula, media_final FROM tb_historico
+WHERE media_final >= 9.5;
+
+CREATE INDEX idx_historico_media ON tb_historico (media_final);
+ANALYZE tb_historico;
+
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT id_matricula, media_final FROM tb_historico
+WHERE media_final >= 9.5;
+
+
+-- =====================================================================
+-- ÍNDICE 5 (GIN em JSONB) - bônus do enunciado
+-- Consulta: todas as matrículas de um aluno registradas no log,
+-- procurando DENTRO do JSON (operador @> = "o JSON contém este pedaço").
+-- B-tree não sabe procurar dentro de JSON; o GIN indexa cada chave/valor.
+-- =====================================================================
+DROP INDEX IF EXISTS idx_log_matricula_gin;
+
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT id_matricula, acao_log_matricula
+FROM tb_log_matricula
+WHERE detalhe_log_matricula @> '{"id_aluno": 15000}';
+
+CREATE INDEX idx_log_matricula_gin
+    ON tb_log_matricula USING gin (detalhe_log_matricula);
+ANALYZE tb_log_matricula;
+
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT id_matricula, acao_log_matricula
+FROM tb_log_matricula
+WHERE detalhe_log_matricula @> '{"id_aluno": 15000}';
+
+-- Tamanho dos índices (compare o parcial com o UNIQUE, que tem todas as linhas)
+SELECT pg_size_pretty(pg_relation_size('idx_matricula_turma_ativa')) AS parcial,
+       pg_size_pretty(pg_relation_size('uk_aluno_turma'))            AS unique_completo,
+       pg_size_pretty(pg_relation_size('idx_log_matricula_gin'))     AS gin;
+
+
+
+/* =====================================================================
+   ARQUIVO: 06_seguranca.sql
+   DESCRIÇÃO: Marco 2 - papéis (aluno, secretaria, coordenacao),
+              GRANT/REVOKE e row-level security (RLS).
+   PRÉ-REQUISITO: 01, 03
+   ===================================================================== */
+
+SET search_path TO academico, public;
+
+-- ---------------------------------------------------------------------
+-- 1. PAPÉIS (roles)
+-- aluno, secretaria e coordenacao são GRUPOS: não fazem login, só
+-- juntam permissões. Os usuários de verdade entram nesses grupos.
+-- O usuário do aluno se chama "a" + matrícula (ex.: a202612000001);
+-- é assim que o RLS descobre quem é o aluno logado.
+-- ---------------------------------------------------------------------
+DROP ROLE IF EXISTS a202612000001;
+DROP ROLE IF EXISTS a202612000002;
+DROP ROLE IF EXISTS sec_maria;
+DROP ROLE IF EXISTS coord_joao;
+DROP ROLE IF EXISTS aluno;
+DROP ROLE IF EXISTS secretaria;
+DROP ROLE IF EXISTS coordenacao;
+
+CREATE ROLE aluno       NOLOGIN;
+CREATE ROLE secretaria  NOLOGIN;
+CREATE ROLE coordenacao NOLOGIN;
+
+CREATE ROLE a202612000001 LOGIN PASSWORD 'aluno123' IN ROLE aluno;
+CREATE ROLE a202612000002 LOGIN PASSWORD 'aluno123' IN ROLE aluno;
+CREATE ROLE sec_maria     LOGIN PASSWORD 'sec123'   IN ROLE secretaria;
+CREATE ROLE coord_joao    LOGIN PASSWORD 'coord123' IN ROLE coordenacao;
+
+
+-- ---------------------------------------------------------------------
+-- 2. REVOKE: começa tirando tudo de todo mundo (menor privilégio)
+-- ---------------------------------------------------------------------
+REVOKE ALL ON SCHEMA academico FROM PUBLIC;
+REVOKE ALL ON ALL TABLES IN SCHEMA academico FROM PUBLIC;
+
+GRANT USAGE ON SCHEMA academico TO aluno, secretaria, coordenacao;
+
+
+-- ---------------------------------------------------------------------
+-- 3. GRANT: o que cada papel pode fazer
+-- ---------------------------------------------------------------------
+
+-- ALUNO: só leitura.
+GRANT SELECT ON v_oferta, v_vagas, v_historico TO aluno;
+GRANT SELECT ON tb_historico, tb_matricula, tb_turma, tb_disciplina, tb_periodo_letivo TO aluno;
+-- Permissão por COLUNA: o aluno vê nome e matrícula, mas não vê CPF,
+-- e-mail nem telefone de ninguém.
+GRANT SELECT (id_aluno, id_pessoa, matricula_aluno) ON tb_aluno  TO aluno;
+GRANT SELECT (id_pessoa, nome_pessoa)               ON tb_pessoa TO aluno;
+
+-- SECRETARIA: lê tudo; cadastra e altera aluno, matrícula e histórico.
+-- Não recebe DELETE: histórico não se apaga.
+GRANT SELECT ON ALL TABLES IN SCHEMA academico TO secretaria;
+GRANT INSERT, UPDATE ON tb_pessoa, tb_aluno, tb_matricula, tb_historico,
+                        tb_mensalidade, tb_requerimento TO secretaria;
+
+-- COORDENAÇÃO: lê tudo e monta a oferta de turmas.
+GRANT SELECT ON ALL TABLES IN SCHEMA academico TO coordenacao;
+GRANT INSERT, UPDATE ON tb_turma, tb_turma_horario TO coordenacao;
+
+-- Log de matrícula: a secretaria registra cada operação no log, então
+-- pode inserir. Ninguém recebe UPDATE nem DELETE: o log não se altera.
+GRANT INSERT ON tb_log_matricula TO secretaria;
+
+
+-- ---------------------------------------------------------------------
+-- 4. ROW-LEVEL SECURITY (RLS) = filtro de LINHAS por usuário
+-- O GRANT diz O QUE o papel pode fazer na tabela; o RLS diz QUAIS
+-- LINHAS ele enxerga. Com o RLS ligado, se nenhuma POLICY liberar a
+-- linha, ela não aparece.
+-- Obs.: o dono das tabelas (bd2, superusuário) ignora o RLS. Por isso
+-- o teste usa SET ROLE para "virar" o aluno.
+-- ---------------------------------------------------------------------
+ALTER TABLE tb_matricula ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tb_historico ENABLE ROW LEVEL SECURITY;
+
+-- Aluno vê só as próprias matrículas:
+-- a linha aparece se o id_aluno dela for o do aluno logado.
+CREATE POLICY pol_matricula_aluno ON tb_matricula
+    FOR SELECT TO aluno
+    USING (id_aluno = (SELECT id_aluno FROM tb_aluno
+                       WHERE 'a' || matricula_aluno = current_user));
+
+-- Aluno vê só o histórico das próprias matrículas.
+-- (a subconsulta em tb_matricula já passa pela policy de cima)
+CREATE POLICY pol_historico_aluno ON tb_historico
+    FOR SELECT TO aluno
+    USING (id_matricula IN (SELECT id_matricula FROM tb_matricula));
+
+-- Secretaria e coordenação veem todas as linhas.
+-- (o que cada uma pode FAZER já foi limitado pelos GRANTs)
+CREATE POLICY pol_matricula_equipe ON tb_matricula
+    FOR ALL TO secretaria, coordenacao
+    USING (true);
+
+CREATE POLICY pol_historico_equipe ON tb_historico
+    FOR ALL TO secretaria, coordenacao
+    USING (true);
+
+
+-- ---------------------------------------------------------------------
+-- 5. TESTE (para a apresentação) - tire os "--" e rode linha a linha
+-- ---------------------------------------------------------------------
+-- SET ROLE a202612000001;
+-- SELECT matricula_aluno, nome_disciplina, media_final, situacao FROM v_historico;  -- só as linhas dele
+-- SELECT * FROM v_historico WHERE matricula_aluno = '202612000002';               -- 0 linhas
+-- SELECT cpf_pessoa FROM tb_pessoa;                                               -- ERRO: permission denied
+-- SELECT * FROM v_vagas;                                                          -- vê as vagas de todas as turmas
+-- RESET ROLE;
+--
+-- SET ROLE sec_maria;
+-- SELECT count(*) FROM tb_historico;                                              -- todas as linhas
+-- DELETE FROM tb_historico WHERE id_historico = 1;                                -- ERRO: permission denied
+-- RESET ROLE;
